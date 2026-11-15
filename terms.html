@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mod Porter terms</title>
+<script>try{var t=localStorage.getItem('mp_theme');if(t==='light'||t==='dark')document.documentElement.dataset.theme=t;}catch(e){}</script>
+<style>
+/* VOICE: plain, honest, short sentences a 14-year-old can follow
+   IDEA: the same grass-topped page as the porter, set as a calm document
+   PICTURE: a short "the important bits" box first, then numbered sections
+   COLOUR and TYPE: grass strip, white page, Pixelify Sans headings, Inter body
+   LAYOUT: one readable column, contents list, back link */
+@font-face{font-family:"Pixelify Sans";src:url("fonts/PixelifySans.ttf") format("truetype");font-weight:400 700;font-display:swap}
+:root{color-scheme:light dark;--bg:light-dark(#d4d6d2,#1c1f23);--ink:light-dark(#1d211c,#ecefe9);--mute:light-dark(#5a6157,#a3aaa0);--card:light-dark(#fbfbf9,#2a2e34);--line:light-dark(#dadcd6,#3a3f46);--link:light-dark(#2f6a1a,#8fe36a);--lava:#ff8a1f}
+:root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0}
+body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.65 system-ui,-apple-system,"Segoe UI",Roboto,Ubuntu,sans-serif;overflow-x:clip}
+.top{height:30px;background:linear-gradient(#5fae3b 0 9px,#8a5f3c 9px)}
+main{max-width:760px;margin:auto;padding:clamp(20px,4vw,48px) max(4vw,14px) 64px}
+h1,h2{font-family:"Pixelify Sans",monospace;line-height:1.1}
+h1{font-size:clamp(32px,5vw,46px);margin:0 0 6px}
+h2{font-size:24px;margin:36px 0 8px;scroll-margin-top:16px}
+.meta{color:var(--mute);margin:0 0 20px}
+a{color:var(--link)}
+.key{background:var(--card);border:1px solid var(--line);border-left:6px solid var(--lava);padding:16px 20px;margin:20px 0}
+.key h2{margin-top:0}
+ul,ol{padding-left:22px}li{margin:6px 0}
+nav ol{columns:2;column-gap:32px;font-size:15px;margin-top:0}nav li{margin:0 0 6px;break-inside:avoid}
+@media(max-width:600px){nav ol{columns:1}}
+.back{display:inline-block;margin-bottom:18px}
+</style>
+</head>
+<body>
+<div class="top"></div>
+<main>
+<a class="back" href="./">← Back to Mod Porter</a>
+<h1>Terms of use and privacy</h1>
+<p class="meta">Last updated 15 November 2026 · Version 3</p>
+
+<section class="key">
+  <h2>The important bits</h2>
+  <ul>
+    <li><b>Uploads are private.</b> Your uploaded mod is deleted once it has been ported. The result is kept for 30 days, and only you, or someone who has the exact same file, can download it.</li>
+    <li><b>Only port mods you're allowed to.</b> That means your own mods, or mods whose license allows changes. Keep ported copies of other people's mods for yourself unless their license allows sharing.</li>
+    <li><b>A ported mod is not your mod.</b> The original author made it. You can't claim it, rename it as your own, or upload it anywhere as your work.</li>
+    <li><b>Ports can be broken.</b> An AI writes the new code. Test in a new world and back up your saves.</li>
+    <li><b>It's free.</b> Donations are optional and unlock nothing.</li>
+    <li><b>Not official.</b> Mod Porter isn't made by or connected to Mojang, Microsoft, Fabric, NeoForge, Forge, NVIDIA, or any mod author.</li>
+  </ul>
+</section>
+
+<nav aria-label="Contents"><ol>
+  <li><a href="#about">What Mod Porter is</a></li>
+  <li><a href="#rules">Your responsibilities</a></li>
+  <li><a href="#content">Uploads and ported mods</a></li>
+  <li><a href="#credit">Credit and ownership</a></li>
+  <li><a href="#takedown">Takedown requests</a></li>
+  <li><a href="#warranty">No guarantees</a></li>
+  <li><a href="#donations">Donations</a></li>
+  <li><a href="#privacy">Privacy</a></li>
+  <li><a href="#changes">Changes and contact</a></li>
+</ol></nav>
+
+<h2 id="about">1. What Mod Porter is</h2>
+<p>Mod Porter is a free fan project. It takes a Minecraft mod made for Fabric, NeoForge or Forge, turns it back into source code, uses an AI model to rewrite the loader-specific parts, and tries to build a version for the other loader. You are asked to agree to these terms each time you open the website, and you can't use it without agreeing.</p>
+<p>If you are under 16, please ask a parent or guardian before using Mod Porter.</p>
+
+<h2 id="rules">2. Your responsibilities</h2>
+<p>When you upload a mod, you confirm that you have the right to do so. You must not:</p>
+<ul>
+  <li>upload mods you aren't allowed to change, or share ported copies the original license doesn't allow;</li>
+  <li>sell ported mods or charge money for them, which Minecraft's own rules also forbid;</li>
+  <li>upload malware or anything that isn't a Minecraft mod;</li>
+  <li>try to overload, break, or misuse the service, for example by sending huge numbers of uploads;</li>
+  <li>use the service for anything illegal.</li>
+</ul>
+<p>We can block uploads or remove content that breaks these rules, without warning.</p>
+
+<h2 id="content">3. Uploads and ported mods</h2>
+<ul>
+  <li>The original mod stays the property of its author. Mod Porter doesn't claim any rights to your upload or to the ported result.</li>
+  <li>Ported code is based on the original, so the original mod's license still applies to it.</li>
+  <li>Uploaded jars are stored in a private repository only while they're being ported, then deleted. Results, reports and build logs are kept privately for 30 days and then deleted automatically.</li>
+  <li>A result can only be downloaded from the browser that started the port, or by someone who uploads the exact same file (the site recognises it by its fingerprint). Nobody can browse other people's uploads or results.</li>
+  <li>Deleted files may remain for a while in the private repository's history and in our providers' backups.</li>
+</ul>
+
+<h2 id="credit">4. Credit and ownership</h2>
+<p>Porting a mod does not make you its author. The person who made the original mod owns it, and a ported version is still their work. When you use a ported mod, you must not:</p>
+<ul>
+  <li>say or suggest that you made the mod, or remove or change the original author's name, credits, or license;</li>
+  <li>upload the ported mod to Modrinth, CurseForge, or anywhere else as your own project, or under a new name meant to hide where it came from;</li>
+  <li>share the ported mod at all unless the original license allows it, or the author has given you permission;</li>
+  <li>make money from it in any way.</li>
+</ul>
+<p>If the license or the author allows you to share a port, clearly label it as an <b>unofficial port</b>, name and link the original author and mod, keep the original license, and say it was made with an automatic tool. Breaking these rules can also break copyright law, and mod authors can have copies taken down.</p>
+
+<h2 id="takedown">5. Takedown requests</h2>
+<p>If you made a mod and want it removed from Mod Porter, open an issue at <a href="https://github.com/fifik-art/fifik-art.github.io/issues">github.com/fifik-art/fifik-art.github.io/issues</a> with the mod's name and a link showing you're the author. We'll remove the files we control as soon as we reasonably can. You can also use GitHub's own copyright process.</p>
+
+<h2 id="warranty">6. No guarantees</h2>
+<p>Mod Porter is provided as it is, for free. Ports often fail, and a mod that builds can still crash or misbehave. The service may be slow, stop working, or be shut down at any time. As far as the law allows, we aren't responsible for lost worlds, corrupted saves, crashes, or other damage from using ported mods. Nothing in these terms limits rights you have under consumer protection law that can't be waived.</p>
+
+<h2 id="donations">7. Donations</h2>
+<p>Donations are voluntary gifts to help pay for running the service. They don't buy anything: no faster ports, no priority, no extra features. Payments are handled by the platform you use, such as Ko-fi or PayPal, under its own terms, including its refund rules.</p>
+
+<h2 id="privacy">8. Privacy</h2>
+<p><b>What we collect.</b> Mod Porter has no accounts and doesn't ask for your name or email. When you port a mod, we process:</p>
+<ul>
+  <li>the jar file you upload, its file name, and the mod information inside it;</li>
+  <li>the time of the upload and the loader you chose;</li>
+  <li>technical data your browser sends to any website, such as your IP address. Our hosting providers handle this; we don't store it ourselves.</li>
+</ul>
+<p><b>Why.</b> Only to port your mod and show you the result. The legal basis is that you asked us to provide the service (GDPR Article 6(1)(b)), plus our legitimate interest in keeping it running and preventing abuse (Article 6(1)(f)).</p>
+<p><b>Who else handles the data.</b></p>
+<ul>
+  <li><b>GitHub</b> (USA) hosts the website, and privately stores uploads and results while building the mods.</li>
+  <li><b>Cloudflare</b> (USA) runs the small server that passes your upload to GitHub.</li>
+  <li><b>NVIDIA</b> (USA) runs the AI model that receives the mod's code to rewrite it.</li>
+  <li><b>Modrinth</b> is checked for mods yours depends on. No personal data is sent.</li>
+</ul>
+<p>These companies may process data outside the EU under their own privacy policies and safeguards.</p>
+<p><b>Your browser.</b> The site remembers a port in progress in your own browser's local storage, so it can pick up where you left off. It also remembers the ports you started, so it can show them under "Your recent ports". It uses no tracking or advertising cookies, and all fonts and code load from this website itself.</p>
+<p><b>How long.</b> Uploaded jars are deleted after porting. Results, reports and logs are deleted after 30 days.</p>
+<p><b>Your rights.</b> Under the GDPR you can ask to see, correct, or delete data about you, object to processing, and complain to a data protection authority. In Slovakia that is the Úrad na ochranu osobných údajov SR. To use your rights, open an issue at the link below.</p>
+
+<h2 id="changes">9. Changes and contact</h2>
+<p>We may update these terms. The date and version at the top show the latest one, and the website asks you to agree again on every visit. These terms are governed by the laws of Slovakia.</p>
+<p>Questions, takedowns, or privacy requests: <a href="https://github.com/fifik-art/fifik-art.github.io/issues">github.com/fifik-art/fifik-art.github.io/issues</a>.</p>
+<p><a href="./">← Back to Mod Porter</a></p>
+</main>
+</body>
+</html>

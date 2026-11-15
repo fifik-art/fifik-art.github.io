@@ -1,0 +1,743 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mod Porter</title>
+<script>try{var t=localStorage.getItem('mp_theme');if(t==='light'||t==='dark')document.documentElement.dataset.theme=t;}catch(e){}</script>
+<script src="vendor/jszip.min.js"></script>
+<style>
+/* VOICE: friendly game tool, short plain sentences
+   IDEA: digging down through a Minecraft world - sky, grass, dirt, stone, bedrock; the furnace stands on the grass
+   PICTURE: a blocky pixel landscape (day sun / night stars and moon) with a real-looking furnace GUI on top
+   COLOUR and TYPE: sky blue / night navy, grass green, dirt brown, stone grey, lava orange accent; Pixelify Sans + Inter
+   LAYOUT: hero scene with furnace, then how-it-works, result, history on stone, bedrock footer */
+@font-face{font-family:"Pixelify Sans";src:url("fonts/PixelifySans.ttf") format("truetype");font-weight:400 700;font-display:swap}
+:root{color-scheme:light dark;
+--sky1:light-dark(#79b8f5,#070b1f);--sky2:light-dark(#cde7ff,#1b2b52);--sky-ink:light-dark(#10233d,#eef3ff);--sky-mute:light-dark(#294a6e,#b6c4e6);
+--grass:#5fae3b;--grass-hi:#7fcf4f;--grass-d:#3f7d25;--dirt:light-dark(#8a5f3c,#6b4a30);--dirt2:light-dark(#76502f,#57391f);--dirt3:light-dark(#a07350,#7d5838);
+--stone:light-dark(#d4d6d2,#1c1f23);--stone2:light-dark(#c6c9c4,#24282d);--card:light-dark(#fbfbf9,#2a2e34);--ink:light-dark(#1d211c,#ecefe9);--mute:light-dark(#5a6157,#a3aaa0);
+--line:light-dark(#dadcd6,#3a3f46);--link:light-dark(#2f6a1a,#8fe36a);--lava:#ff8a1f;--bad:light-dark(#b8341f,#ff8a7a);
+--gui:#c6c6c6;--hi:#fff;--lo:#555;--slot:#8b8b8b}
+:root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0}
+html{background:var(--stone)}
+body{margin:0;background:var(--stone);color:var(--ink);font:16px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,Ubuntu,sans-serif;overflow-x:clip}
+h1,h2,h3,.px{font-family:"Pixelify Sans",monospace}
+a{color:var(--link)}
+svg.pix{shape-rendering:crispEdges;display:block}
+
+/* ---------- hero scene ---------- */
+.hero{position:relative;background:linear-gradient(var(--sky1),var(--sky2) 70%);overflow:hidden;isolation:isolate}
+#scene{position:absolute;inset:0;width:100%;height:100%;z-index:-1;shape-rendering:crispEdges}
+#scene .g{fill:var(--grass)}#scene .gh{fill:var(--grass-hi)}#scene .gd{fill:var(--grass-d)}
+#scene .d{fill:var(--dirt)}#scene .d2{fill:var(--dirt2)}#scene .d3{fill:var(--dirt3)}
+#scene .lv{fill:light-dark(#3f8f2a,#2c6a1d)}#scene .lv2{fill:light-dark(#2f7420,#215217)}#scene .tr{fill:light-dark(#6b4a2b,#4e3520)}
+#scene .cl{fill:light-dark(#ffffff,#2a3a63)}#scene .cl2{fill:light-dark(#e6f1ff,#22305a)}
+#scene .st{fill:light-dark(transparent,#ffffff)}#scene .sun{fill:light-dark(#ffe45c,transparent)}#scene .sun2{fill:light-dark(#fff3a8,transparent)}
+#scene .moon{fill:light-dark(transparent,#ecebd8)}#scene .moon2{fill:light-dark(transparent,#c9c8b2)}
+:root[data-theme=dark] #scene .st{fill:#fff}
+.hero-in{max-width:980px;margin:auto;padding:14px max(4vw,14px) clamp(90px,14vw,150px)}
+.bar{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:clamp(20px,4vw,40px)}
+.logo{display:flex;align-items:center;gap:10px;font:700 22px "Pixelify Sans",monospace;color:var(--sky-ink);text-decoration:none}
+.logo svg{width:34px;height:34px}
+.bar-r{display:flex;align-items:center;gap:14px}
+.bar-r a{color:var(--sky-ink);font-weight:600}
+.themebtn{display:inline-flex;align-items:center;gap:8px}
+.themebtn .tico{width:18px;height:18px;display:block}
+h1{font-size:clamp(32px,5.4vw,52px);line-height:1.05;margin:0 0 12px;color:var(--sky-ink);max-width:22ch;text-wrap:balance}
+.lead{color:var(--sky-mute);margin:0 0 26px;max-width:58ch;font-size:17px}
+.banner{background:#7a2d22;color:#fff;padding:12px 16px;margin-bottom:18px;outline:3px solid #000}
+
+/* ---------- minecraft gui ---------- */
+.gui{background:var(--gui);color:#3f3f3f;border:4px solid;border-color:var(--hi) var(--lo) var(--lo) var(--hi);outline:3px solid #000;padding:clamp(14px,3vw,26px);box-shadow:0 18px 40px rgba(0,0,0,.35)}
+.gui .label{font:700 18px "Pixelify Sans",monospace;color:#404040;margin:-4px 0 12px}
+.row{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);gap:clamp(12px,3vw,28px);align-items:center}
+.slot{background:var(--slot);border:4px solid;border-color:#373737 var(--hi) var(--hi) #373737;min-height:178px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;text-align:center;padding:12px;color:#fff;text-shadow:2px 2px #3f3f3f;transition:background .15s}
+.slot .ico{width:48px;height:48px;margin-bottom:6px;opacity:.45}
+#drop{cursor:pointer}#drop:hover{background:#979797}#drop.drag{background:#9db58f}#drop.locked{cursor:default}
+#drop[data-loader] .ico,#out.ready .ico{opacity:1}
+#drop[data-loader=fabric] .liq{fill:#dbd0b4}#drop[data-loader=neoforge] .liq{fill:#e8873a}#drop[data-loader=forge] .liq{fill:#7f9cc9}
+.liq{fill:#a9a9a9}#out.ready .liq{fill:#b77cff}
+#out.ready .ico{filter:drop-shadow(0 0 6px #c79bff)}
+.slot .big{font:700 19px/1.2 "Pixelify Sans",monospace;word-break:break-word}
+.slot small{opacity:.92;font-size:13px}
+.mid{display:flex;flex-direction:column;align-items:center;gap:12px}
+.flame{width:40px;height:50px}.arrow{width:66px;height:48px}
+.flame .fo{fill:#6e6e6e}.flame .fy{fill:#7d7d7d}
+.on .flame .fo{fill:#ff7b1a}.on .flame .fy{fill:#ffd23f}
+@keyframes burn{50%{transform:scaleY(.86)}}
+.on .flame{animation:burn .5s steps(2) infinite;transform-origin:50% 100%}
+@media(prefers-reduced-motion:reduce){.on .flame{animation:none}}
+.arrow .base{fill:#8b8b8b}.arrow .fill{fill:#fff}
+.fuel{display:flex;gap:8px}
+.mc{font:700 15px "Pixelify Sans",monospace;min-height:44px;padding:8px 14px;background:#7a7a7a;color:#fff;text-shadow:2px 2px #3e3e3e;border:3px solid;border-color:#b5b5b5 #4a4a4a #4a4a4a #b5b5b5;outline:2px solid #000;cursor:pointer}
+.mc:hover:not(:disabled){background:#8890c4;border-color:#c7cffc #4c547d #4c547d #c7cffc}
+.mc[aria-pressed=true],.mc.green{background:var(--grass);border-color:#a6eb82 var(--grass-d) var(--grass-d) #a6eb82}
+.mc[aria-pressed=true]:hover:not(:disabled),.mc.green:hover:not(:disabled){background:#6cbf45;border-color:#b9f59a #3a7322 #3a7322 #b9f59a}
+.mc:disabled{filter:grayscale(1);opacity:.55;cursor:not-allowed}
+.mc:focus-visible,a:focus-visible,#drop:focus-visible,summary:focus-visible,input:focus-visible{outline:3px solid var(--lava);outline-offset:2px}
+.go{width:100%;margin-top:20px;font-size:21px;min-height:54px}
+.agree{margin:10px 0 0;font-size:13px;color:#3f3f3f;text-align:center}.agree a{color:#1f4f10}
+.dl{margin-top:8px}
+.msg{margin-top:12px;font-size:14px;color:#3f3f3f}.msg:empty{display:none}.msg.err{color:#8c1f12;font-weight:600}
+
+/* progress list: minecraft tooltip */
+.stages{list-style:none;margin:18px 0 0;padding:12px 16px;background:#100010;color:#d6d6d6;border:3px solid;border-image:linear-gradient(#5000ff,#28007f) 1;outline:2px solid #100010;font:14px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,Ubuntu,sans-serif}
+.stages li{display:grid;grid-template-columns:22px minmax(0,1fr);gap:8px;padding:3px 0}
+.stages .ic{font:700 14px "Pixelify Sans",monospace;text-align:center}
+.stages .todo{color:#7a7a8c}.stages .now{color:#ffd96a}.stages .ok{color:#7ee85a}.stages .bad{color:#ff7d6e}
+.stages .sub{display:block;font-size:13px;color:#b9a8ff}
+.clock{display:flex;justify-content:space-between;flex-wrap:wrap;gap:4px 16px;margin-top:10px;font:600 14px system-ui,-apple-system,"Segoe UI",Roboto,Ubuntu,sans-serif;color:#3f3f3f}
+
+/* ---------- underground ---------- */
+.dirt{height:28px;background:
+  linear-gradient(90deg,transparent 0 18px,var(--dirt2) 18px 24px,transparent 24px 52px,var(--dirt3) 52px 58px,transparent 58px) 0 4px/96px 8px repeat-x,
+  linear-gradient(90deg,transparent 0 38px,var(--dirt3) 38px 44px,transparent 44px 80px,var(--dirt2) 80px 86px,transparent 86px) 0 16px/112px 8px repeat-x,
+  var(--dirt)}
+.under{background:var(--stone);background-image:linear-gradient(90deg,var(--stone2) 2px,transparent 2px),linear-gradient(var(--stone2) 2px,transparent 2px);background-size:64px 64px}
+.wrap{max-width:980px;margin:auto;padding:clamp(28px,4vw,52px) max(4vw,14px) 56px}
+.steps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+.step{background:var(--card);border:1px solid var(--line);padding:18px;display:grid;grid-template-columns:44px minmax(0,1fr);gap:14px;align-items:start}
+.step svg{width:44px;height:44px}
+.step h3{font-size:18px;margin:0 0 4px}.step p{margin:0;color:var(--mute);font-size:15px}
+.card{background:var(--card);border:1px solid var(--line);padding:clamp(16px,3vw,26px);margin-top:24px;box-shadow:0 4px 0 var(--stone2)}
+.card h2{font-size:26px;margin:0 0 12px}
+.result{margin:0 0 24px}
+.result .head{display:flex;flex-wrap:wrap;gap:12px 20px;align-items:center;justify-content:space-between}
+.result .big{font:700 24px "Pixelify Sans",monospace}
+.meta{color:var(--mute);font-size:14px}
+.card .msg{color:var(--ink)}.card .msg.err{color:var(--bad)}
+.need{border-left:6px solid var(--lava);padding:12px 16px;margin:16px 0;background:light-dark(#fff3e6,#3a2c1d)}
+.need ul,.notes{margin:6px 0 0;padding-left:20px}.notes li{margin:4px 0}
+details{margin-top:14px}summary{cursor:pointer;font-weight:600;min-height:32px}
+pre{white-space:pre-wrap;font:13px/1.5 ui-monospace,Consolas,monospace;background:var(--stone);padding:12px;overflow-x:auto}
+.tip{margin-top:16px;padding:12px 14px;border:2px dashed var(--line);display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.heart{color:#e0455a}
+.hist{list-style:none;margin:0;padding:0}
+.hist li{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 14px;align-items:center;padding:13px 0;border-bottom:1px solid var(--line)}
+.hist li:last-child{border-bottom:0}
+.hist .nm{font-weight:600;word-break:break-word}
+.chip{display:inline-block;font:700 12px "Pixelify Sans",monospace;padding:2px 7px;margin-right:6px;vertical-align:1px}
+.chip.fab{background:#dbd0b4;color:#3b352a}.chip.neo{background:#d9732c;color:#fff}.chip.forge{background:#3d4b63;color:#fff}
+.before{background:#1f3b12;color:#eaffde;border:3px solid #000;padding:10px 14px;margin-top:12px;font-size:14px;display:flex;gap:10px 16px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.before[hidden]{display:none}
+.before.warn{background:#4a2a10;color:#ffe8cf}.before b{font-family:'Pixelify Sans',monospace;font-size:16px}
+.linkbtn{background:none;border:0;padding:6px 2px;color:inherit;text-decoration:underline;font:600 14px system-ui,-apple-system,"Segoe UI",Roboto,Ubuntu,sans-serif;cursor:pointer;min-height:36px}
+.fuel{flex-wrap:wrap;justify-content:center}
+.st{white-space:nowrap;font-weight:600}.st.s{color:light-dark(#2f6a1a,#8fe36a)}.st.f{color:var(--bad)}.st.r{color:light-dark(#a35400,#ffb35c)}
+.hist .act{display:flex;gap:12px;flex-wrap:wrap;align-items:center;justify-content:flex-end}
+.small{font-size:13px;min-height:40px;padding:6px 12px}
+.empty{color:var(--mute)}
+/* support: side tab on PC, emerald ore deep down on phones */
+.sidetab{position:fixed;right:0;top:46%;z-index:40;display:flex;flex-direction:column;align-items:center;gap:6px;padding:12px 10px 10px 12px;border-right:0;transform:translateX(0);transition:transform .15s}
+.sidetab:hover:not(:disabled),.sidetab:focus-visible{transform:translateX(-6px)}
+.sidetab .gem{width:30px;height:30px}
+.sidetab span:last-child{font-size:13px}
+.deep{display:none;margin-top:24px;background:#3a3a3a;background-image:linear-gradient(90deg,#444 2px,transparent 2px),linear-gradient(#444 2px,transparent 2px);background-size:32px 32px;color:#eee;padding:20px;border:3px solid #000;text-align:center}
+.deep .ore{width:64px;height:64px;margin:0 auto 10px}
+.deep h2{font-size:22px;margin:0 0 6px;color:#fff}
+.deep p{margin:0 0 14px;color:#d2d2d2}
+@media(max-width:899px){.sidetab{display:none}.deep{display:block}}
+@media(prefers-reduced-motion:reduce){.sidetab{transition:none}}
+.blurred{filter:blur(6px);user-select:none;-webkit-user-select:none;pointer-events:none}
+footer{background:#2b2b2b;background-image:radial-gradient(#3d3d3d 25%,transparent 26%),radial-gradient(#1a1a1a 25%,transparent 26%);background-size:24px 24px,32px 32px;background-position:0 0,12px 8px;color:#cfcfcf;font-size:14px}
+footer .wrap{padding-top:26px;padding-bottom:30px}
+footer a{color:#a6eb82}
+
+/* ---------- dialogs ---------- */
+dialog{border:0;padding:0;background:transparent;max-width:min(480px,calc(100vw - 24px))}
+dialog::backdrop{background:rgba(5,8,20,.6)}
+dialog .gui{max-height:calc(100vh - 32px);overflow:auto}
+dialog h2{margin:0 0 8px;color:#2a2a2a;font-size:24px}
+dialog p{margin:0 0 12px;color:#3a3a3a}
+#gate ul{margin:8px 0 12px;padding-left:20px;color:#2f2f2f;font-size:15px}#gate li{margin:5px 0}
+#gate label{display:flex;gap:10px;align-items:flex-start;font-weight:600;color:#2a2a2a;margin:10px 0;cursor:pointer}
+#gate input{width:22px;height:22px;flex:none;margin-top:2px;accent-color:#3d7a24}
+#gate a{color:#1f4f10}#gate .go{margin-top:8px}
+.don .links{display:grid;gap:10px;margin:14px 0}
+.don .links a{text-decoration:none;text-align:center;display:block}
+.don .x{float:right;margin:-6px -6px 0 8px;min-width:44px}
+
+@media(max-width:760px){.steps{grid-template-columns:1fr}}
+@media(max-width:600px){.row{grid-template-columns:1fr}.mid{flex-direction:row;flex-wrap:wrap;justify-content:center}.arrow{transform:rotate(90deg)}.slot{min-height:130px}
+.hist li{grid-template-columns:1fr}.hist .act{justify-content:flex-start}.bar-r a{display:none}.themebtn .tlabel{display:none}}
+</style>
+
+</head>
+<body>
+<header class="hero">
+  <svg id="scene" aria-hidden="true"></svg>
+  <div class="hero-in">
+    <div class="bar">
+      <a class="logo" href="./"><span data-px="furnace"></span>Mod Porter</a>
+      <span class="bar-r"><a href="terms.html">Terms</a><button class="mc small themebtn" type="button" id="themeBtn" aria-label="Switch to night"><span class="tico" data-px="moon"></span><span class="tlabel">Night</span></button></span>
+    </div>
+    <h1>Port Minecraft mods between Fabric, NeoForge and Forge</h1>
+    <p class="lead">Drop in a Fabric, NeoForge or Forge mod and pick a loader. An AI rewrites the loader code and builds a fresh jar. Works for Minecraft 1.20.5 and newer, takes 20–40 minutes, and small mods work best.</p>
+    <div class="banner" id="banner" hidden></div>
+
+    <section class="gui" id="furnace" aria-label="Porting furnace">
+      <div class="label">Porting furnace</div>
+      <div class="row">
+        <div class="slot" id="drop" tabindex="0" role="button" aria-label="Choose a mod jar">
+          <span class="ico" data-px="jar"></span>
+          <div class="big" id="inName">Drop mod .jar</div>
+          <small id="inInfo">or click to choose a file</small>
+        </div>
+        <div class="mid">
+          <span class="flame" data-px="flame"></span>
+          <div class="fuel" role="group" aria-label="Port to">
+            <button type="button" class="mc" data-t="neoforge" aria-pressed="false">NeoForge</button>
+            <button type="button" class="mc" data-t="fabric" aria-pressed="false">Fabric</button>
+            <button type="button" class="mc" data-t="forge" aria-pressed="false">Forge</button>
+          </div>
+          <span class="arrow" data-px="arrow"></span>
+        </div>
+        <div class="slot" id="out" aria-live="polite">
+          <span class="ico" data-px="jar"></span>
+          <div class="big" id="outName">Ported mod</div>
+          <small id="outInfo">comes out here</small>
+        </div>
+      </div>
+      <input type="file" id="file" accept=".jar" hidden>
+      <button class="mc green go" id="go" disabled>Port it</button>
+      <p class="agree">By porting you agree to the <a href="terms.html">terms</a>. Uploads are private and deleted after porting.</p>
+      <div class="msg" id="msg" aria-live="polite"></div>
+      <div class="before" id="before" hidden aria-live="polite"></div>
+      <div id="work" hidden>
+        <ol class="stages" id="stages"></ol>
+        <div class="clock"><span id="elapsed"></span><span id="eta"></span></div>
+      </div>
+    </section>
+  </div>
+</header>
+<div class="dirt" aria-hidden="true"></div>
+
+<main class="under">
+  <div class="wrap">
+    <section class="card result" id="result" hidden aria-live="polite"></section>
+
+    <section class="steps" aria-label="How it works">
+      <div class="step"><span data-px="jar"></span><div><h3>Drop your mod</h3><p>A Fabric, NeoForge or Forge .jar for Minecraft 1.20.5 or newer.</p></div></div>
+      <div class="step"><span data-px="book"></span><div><h3>AI rewrites it</h3><p>Only the loader-specific code changes. Required mods are found on Modrinth.</p></div></div>
+      <div class="step"><span data-px="chest"></span><div><h3>Download and test</h3><p>Try it in a new world first. Ports can compile and still misbehave.</p></div></div>
+    </section>
+
+    <section class="card">
+      <h2>Your recent ports</h2>
+      <ul class="hist" id="hist"><li class="empty">Loading…</li></ul>
+    </section>
+
+    <section class="deep" aria-label="Support Mod Porter">
+      <div class="ore" data-px="ore"></div>
+      <h2>You dug all the way down!</h2>
+      <p>Found something shiny. If Mod Porter saved you some work, a small tip helps keep the furnace burning.</p>
+      <button class="mc green donbtn" type="button">Support Mod Porter</button>
+    </section>
+  </div>
+</main>
+<button class="mc green sidetab donbtn" type="button" aria-label="Support Mod Porter"><span class="gem" data-px="emerald"></span><span>Support</span></button>
+<footer><div class="wrap">Only port mods you're allowed to. A ported mod is still the original author's work. Mod Porter is a free fan project, not affiliated with Mojang, Microsoft, Fabric, NeoForge or Forge. <a href="terms.html">Terms &amp; privacy</a></div></footer>
+
+<dialog id="gate" aria-labelledby="gateTitle">
+  <div class="gui">
+    <h2 id="gateTitle">Before you start</h2>
+    <p>Mod Porter is a free fan tool. To use it, you agree that:</p>
+    <ul>
+      <li>You only port mods you're allowed to change.</li>
+      <li><b>A ported mod is not yours.</b> You won't claim it as your work, remove the author's credits, or upload it anywhere as your own.</li>
+      <li>You won't share or sell ported mods unless the original license or author allows it.</li>
+      <li>Ports can be broken. Results are kept for 30 days, and only you (or someone with the exact same file) can download them.</li>
+    </ul>
+    <label><input type="checkbox" id="gateOk"><span>I have read and agree to the <a href="terms.html" target="_blank" rel="noopener">terms of use and privacy policy</a>.</span></label>
+    <button class="mc green go" type="button" id="gateGo" disabled>Agree and continue</button>
+  </div>
+</dialog>
+<dialog id="don" aria-labelledby="donTitle">
+  <div class="gui don">
+    <button class="mc x" type="button" id="donClose" aria-label="Close">✕</button>
+    <h2 id="donTitle">Keep the furnace burning</h2>
+    <p>Mod Porter is free and always will be. Every port uses servers and AI time, so if it saved you some work, a small tip helps keep it running.</p>
+    <p>Donations are completely optional and don't unlock anything.</p>
+    <div class="links" id="donLinks"></div>
+  </div>
+</dialog>
+<script>
+{
+const $ = id => document.getElementById(id);
+
+/* ---------- pixel art ---------- */
+const PIX = {
+  furnace: {rows:['SSSSSSSS','SDDDDDDS','SDSSSSDS','SSSSSSSS','SDDDDDDS','SDOOOODS','SDOYYODS','SSSSSSSS'],
+            pal:{S:'#8f8f8f',D:'#3b3b3b',O:'#ff7b1a',Y:'#ffd23f'}},
+  jar:     {rows:['..CCCC..','...GG...','..GGGG..','.GLLLLG.','.GLLLLG.','.GLLLLG.','.GLLLLG.','..GGGG..'],
+            pal:{C:'#8a5a2e',G:'#e3edf5',L:'.liq'}},
+  book:    {rows:['.BBBBBB.','BPPPPPPB','BPWWWWPB','BPPPPPPB','BPWWWWPB','BPPPPPPB','BBBBBBBB','.GGGGGG.'],
+            pal:{B:'#4a2616',P:'#7a3626',W:'#ead9ae',G:'#c9a24a'}},
+  chest:   {rows:['BBBBBBBB','BWWWWWWB','BWWWWWWB','BBBYYBBB','BWWYYWWB','BWWWWWWB','BWWWWWWB','BBBBBBBB'],
+            pal:{B:'#4d2f12',W:'#a8692e',Y:'#d8d8d8'}},
+  sun:     {rows:['...YY...','.Y.YY.Y.','..YYYY..','YYYYYYYY','YYYYYYYY','..YYYY..','.Y.YY.Y.','...YY...'],
+            pal:{Y:'#ffd23f'}},
+  moon:    {rows:['..MMMM..','.MMMMMM.','MMMDMMMM','MMMMMMMM','MMMMMDMM','MDMMMMMM','.MMMMMM.','..MMMM..'],
+            pal:{M:'#ecebd8',D:'#b9b8a2'}},
+  emerald: {rows:['...GG...','..GLGG..','.GLGGGG.','GLGGGGDG','GGGGGGDG','.GGGGDG.','..GGDG..','...GG...'],
+            pal:{G:'#17dd62',L:'#b5ffd0',D:'#0c8a3c'}},
+  ore:     {rows:['SSSSSSSS','SSGSSSDS','SGLGSSSS','SSGSSGGS','SDSSSGLS','SSSSSSGS','SSSGSDSS','SSGLGSSS'],
+            pal:{S:'#8f8f8f',D:'#6f6f6f',G:'#17dd62',L:'#b5ffd0'}},
+  flame:   {rows:['...o....','...oo...','..ooo...','..oyo.o.','.ooyoooo','.oyyyyo.','ooyyyyoo','.oyyyyo.','.ooyyoo.','..oooo..'],
+            pal:{o:'.fo',y:'.fy'}}
+};
+const ARROW = ['......x....','......xx...','xxxxxxxxx..','xxxxxxxxxx.','xxxxxxxxxx.','xxxxxxxxx..','......xx...','......x....'];
+function pxRects(rows, pal){
+  let out = '';
+  rows.forEach((r, y) => {
+    let x = 0;
+    while (x < r.length) {
+      const c = r[x];
+      if (c === '.') { x++; continue; }
+      let w = 1; while (r[x + w] === c) w++;
+      const p = pal[c] || '#000';
+      out += '<rect x="' + x + '" y="' + y + '" width="' + w + '" height="1" ' + (p[0] === '.' ? 'class="' + p.slice(1) + '"' : 'fill="' + p + '"') + '/>';
+      x += w;
+    }
+  });
+  return out;
+}
+function pxSvg(name){
+  const a = PIX[name], W = a.rows[0].length, H = a.rows.length;
+  return '<svg class="pix" viewBox="0 0 ' + W + ' ' + H + '" width="100%" height="100%" aria-hidden="true">' + pxRects(a.rows, a.pal) + '</svg>';
+}
+document.querySelectorAll('[data-px]').forEach(el => {
+  const n = el.dataset.px;
+  if (n === 'arrow') {
+    const shape = pxRects(ARROW, {x:'.base'});
+    el.innerHTML = '<svg class="pix" viewBox="0 0 11 8" width="100%" height="100%" aria-hidden="true"><defs><clipPath id="cp"><rect id="prog" width="0" height="8"/></clipPath></defs>' +
+      shape + '<g clip-path="url(#cp)">' + shape.replace(/class="base"/g, 'class="fill" style="fill:#ff8a1f"') + '</g></svg>';
+  } else if (PIX[n]) el.innerHTML = pxSvg(n);
+});
+
+/* ---------- day / night ---------- */
+const mq = window.matchMedia ? matchMedia('(prefers-color-scheme: dark)') : null;
+const isNight = () => document.documentElement.dataset.theme ? document.documentElement.dataset.theme === 'dark' : !!(mq && mq.matches);
+function paintThemeBtn(){
+  const night = isNight(), b = $('themeBtn'); if (!b) return;
+  b.querySelector('.tico').innerHTML = pxSvg(night ? 'sun' : 'moon');
+  b.querySelector('.tlabel').textContent = night ? 'Day' : 'Night';
+  b.setAttribute('aria-label', night ? 'Switch to day' : 'Switch to night');
+}
+$('themeBtn').addEventListener('click', () => {
+  const next = isNight() ? 'light' : 'dark';
+  document.documentElement.dataset.theme = next;
+  try { localStorage.setItem('mp_theme', next); } catch(e) {}
+  paintThemeBtn();
+});
+if (mq && mq.addEventListener) mq.addEventListener('change', paintThemeBtn);
+paintThemeBtn();
+
+/* ---------- landscape ---------- */
+const hsh = n => { const s = Math.sin(n * 12.9898 + 78.233) * 43758.5453; return s - Math.floor(s); };
+function drawScene(){
+  const sv = $('scene'); if (!sv) return;
+  const W = sv.clientWidth, H = sv.clientHeight; if (!W || !H) return;
+  const B = W < 600 ? 20 : 28, cols = Math.ceil(W / B) + 1;
+  let s = '';
+  // stars (night only via CSS), sun / moon
+  for (let i = 0; i < 70; i++) { const x = Math.floor(hsh(i) * W), y = Math.floor(hsh(i + 99) * Math.min(H * 0.62, 640)), z = hsh(i + 7) > 0.8 ? 3 : 2; s += '<rect class="st" x="' + x + '" y="' + y + '" width="' + z + '" height="' + z + '"/>'; }
+  const sx = W - B * (W < 600 ? 3.6 : 6.5), sy = B * (W < 600 ? 3.4 : 2.9), S = B * 2.4;
+  s += '<rect class="sun" x="' + sx + '" y="' + sy + '" width="' + S + '" height="' + S + '"/><rect class="sun2" x="' + (sx + S * .2) + '" y="' + (sy + S * .2) + '" width="' + S * .6 + '" height="' + S * .6 + '"/>';
+  s += '<rect class="moon" x="' + sx + '" y="' + sy + '" width="' + S + '" height="' + S + '"/><rect class="moon2" x="' + (sx + S * .2) + '" y="' + (sy + S * .25) + '" width="' + S * .25 + '" height="' + S * .25 + '"/><rect class="moon2" x="' + (sx + S * .55) + '" y="' + (sy + S * .55) + '" width="' + S * .2 + '" height="' + S * .2 + '"/>';
+  // clouds
+  [[0.06, 0.16, 5], [0.48, 0.07, 4], [0.74, 0.3, 6]].forEach(([fx, fy, n], k) => {
+    const x = Math.floor(fx * W / B) * B, y = Math.floor(fy * 520 / B) * B + B;
+    s += '<rect class="cl" x="' + x + '" y="' + y + '" width="' + n * B + '" height="' + B + '"/>';
+    s += '<rect class="cl" x="' + (x + B) + '" y="' + (y - B * .6) + '" width="' + (n - 2) * B + '" height="' + B * .6 + '"/>';
+    s += '<rect class="cl2" x="' + x + '" y="' + (y + B) + '" width="' + n * B + '" height="' + B * .3 + '"/>';
+  });
+  // terrain
+  const hgt = i => Math.max(2, 3 + Math.round(1.2 * Math.sin(i * .45) + 1.0 * Math.sin(i * .17 + 2) + .6 * Math.sin(i * .9 + 1)));
+  const sp = B / 7;
+  for (let i = 0; i < cols; i++) {
+    const h = hgt(i), x = i * B, top = H - h * B;
+    s += '<rect class="d" x="' + x + '" y="' + top + '" width="' + B + '" height="' + (h * B) + '"/>';
+    s += '<rect class="g" x="' + x + '" y="' + top + '" width="' + B + '" height="' + (B * .3) + '"/>';
+    s += '<rect class="gh" x="' + (x + Math.floor(hsh(i * 3) * 5) * sp) + '" y="' + top + '" width="' + sp * 2 + '" height="' + sp + '"/>';
+    s += '<rect class="gd" x="' + (x + Math.floor(hsh(i * 5) * 6) * sp) + '" y="' + (top + B * .3) + '" width="' + sp + '" height="' + sp + '"/>';
+    for (let r = 0; r < h; r++) for (let k = 0; k < 3; k++) {
+      const n = i * 31 + r * 7 + k;
+      s += '<rect class="' + (k % 2 ? 'd2' : 'd3') + '" x="' + (x + Math.floor(hsh(n) * 6) * sp) + '" y="' + (top + r * B + B * .35 + Math.floor(hsh(n + 3) * 4) * sp) + '" width="' + sp + '" height="' + sp + '"/>';
+    }
+    // trees near the edges
+    if ((i === 2 || i === cols - 4 || i % 13 === 7) && h >= 3) {
+      const tx = x, ty = top;
+      s += '<rect class="tr" x="' + (tx + B * .3) + '" y="' + (ty - B * 3) + '" width="' + B * .4 + '" height="' + B * 3 + '"/>';
+      s += '<rect class="lv" x="' + (tx - B) + '" y="' + (ty - B * 4.2) + '" width="' + B * 3 + '" height="' + B * 1.6 + '"/>';
+      s += '<rect class="lv2" x="' + (tx - B) + '" y="' + (ty - B * 2.8) + '" width="' + B * 3 + '" height="' + B * .3 + '"/>';
+      s += '<rect class="lv" x="' + (tx - B * .2) + '" y="' + (ty - B * 5) + '" width="' + B * 1.4 + '" height="' + B * .9 + '"/>';
+    }
+  }
+  sv.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
+  sv.innerHTML = s;
+}
+new ResizeObserver(drawScene).observe(document.querySelector('.hero'));
+
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const store = {get(k){try{return JSON.parse(localStorage.getItem(k))}catch(e){return null}},set(k,v){try{v==null?localStorage.removeItem(k):localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const mins = ms => { const m = Math.max(0, Math.round(ms/60000)); return m < 1 ? 'under a minute' : m === 1 ? '1 min' : m + ' min'; };
+const clockFmt = ms => { const s = Math.max(0, Math.floor(ms/1000)); return Math.floor(s/60) + ':' + String(s%60).padStart(2,'0'); };
+const loaderName = t => ({fabric:'Fabric', neoforge:'NeoForge', forge:'Forge'})[t] || 'NeoForge';
+const chipClass = t => ({fabric:'fab', neoforge:'neo', forge:'forge'})[t] || 'neo';
+const DEFAULT_TARGET = {fabric:'neoforge', neoforge:'fabric', forge:'neoforge'};
+
+const STAGES = [
+  {k:'upload', t:'Uploading your mod'},
+  {k:'queue',  t:'Waiting for a free builder'},
+  {k:'prep',   t:'Reading the mod and downloading tools'},
+  {k:'decomp', t:'Turning the jar back into code'},
+  {k:'ai',     t:'AI rewriting the loader code'},
+  {k:'build',  t:'Building the new jar and fixing errors'},
+  {k:'done',   t:'Finished'}
+];
+const STAGE_OF = {read:'prep', setup:'prep', remap:'prep', decompile:'decomp', ai:'ai', build:'build', fix:'build', done:'done', failed:'done'};
+
+let agreed = false, API = '', file = null, info = null, target = null, busy = false, avgMs = 35*60000, timer = null, job = null;
+
+async function api(path, opts) {
+  if (!API) throw new Error('The website backend is not set up yet.');
+  let r;
+  try { r = await fetch(API + path, opts); }
+  catch(e) { throw new Error("Couldn't reach the porter server. Check your internet connection, turn off ad blockers for this site, and try again."); }
+  if (!r.ok) { let m = 'Server error ' + r.status; try { m = (await r.json()).error || m } catch(e){} throw new Error(m); }
+  return r;
+}
+
+/* ---------- furnace state ---------- */
+const setMsg = (t, err) => { $('msg').textContent = t || ''; $('msg').className = 'msg' + (err ? ' err' : ''); };
+const setProg = p => $('prog').setAttribute('width', String(11 * Math.max(0, Math.min(1, p))));
+const burning = on => { $('furnace').classList.toggle('on', on); };
+const refreshGo = () => { $('go').disabled = busy || !file || !target || !API || !agreed; };
+function pickTarget(t){ target = t; document.querySelectorAll('.fuel .mc').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.t === t))); refreshGo(); }
+
+/* ---------- ported before? ---------- */
+let prior = null, lookupSeq = 0;
+async function sha256(f){
+  const buf = await crypto.subtle.digest('SHA-256', await f.arrayBuffer());
+  return Array.from(new Uint8Array(buf), b => b.toString(16).padStart(2, '0')).join('');
+}
+function setGoLabel(){ $('go').textContent = prior && prior.status === 'success' ? 'Get ported mod (instant)' : 'Port it'; }
+async function checkBefore(){
+  prior = null; $('before').hidden = true; setGoLabel();
+  if (!info || !info.hash || !target || info.loader === target || !API) return;
+  const seq = ++lookupSeq;
+  try {
+    const r = await (await api('/lookup?hash=' + info.hash + '&target=' + target)).json();
+    if (seq !== lookupSeq || r.status === 'none') return;
+    prior = r;
+    const when = new Date(r.run.created_at).toLocaleDateString(undefined, {day:'numeric', month:'long', year:'numeric'});
+    const box = $('before');
+    if (r.status === 'success') {
+      box.className = 'before';
+      box.innerHTML = '<span><b>This mod was ported before.</b> This exact file was ported to ' + loaderName(target) + ' on ' + esc(when) + ', so you can get it instantly.</span><button class="linkbtn" type="button" id="againAnyway">Port again anyway</button>';
+    } else {
+      box.className = 'before warn';
+      box.innerHTML = '<span><b>This mod was tried before.</b> Porting this exact file to ' + loaderName(target) + ' failed on ' + esc(when) + '. You can still try again.</span>';
+    }
+    box.hidden = false; setGoLabel();
+    if ($('againAnyway')) $('againAnyway').onclick = () => { prior = null; box.hidden = true; setGoLabel(); startPort(); };
+  } catch(e) { /* lookup is optional; porting still works */ }
+}
+function lock(on){ busy = on; $('drop').classList.toggle('locked', on); document.querySelectorAll('.fuel .mc').forEach(b => b.disabled = on); refreshGo(); }
+function resetOut(){ if ($('before')) $('before').hidden = true; $('out').classList.remove('ready'); $('outName').textContent = 'Ported mod'; $('outInfo').textContent = 'comes out here'; $('out').querySelectorAll('button').forEach(a => a.remove()); }
+
+document.querySelectorAll('.fuel .mc').forEach(b => b.addEventListener('click', () => { if (!busy) { pickTarget(b.dataset.t); checkBefore(); } }));
+
+async function takeFile(f){
+  if (busy || !agreed) return;
+  if (!f || !/\.jar$/i.test(f.name)) { setMsg('That is not a .jar file.', true); return; }
+  if (f.size > 25*1024*1024) { setMsg('That jar is over 25 MB, which is too big.', true); return; }
+  file = f; info = null; prior = null; setGoLabel(); delete $('drop').dataset.loader; resetOut(); $('result').hidden = true; $('work').hidden = true; setProg(0); setMsg('');
+  $('inName').textContent = f.name; $('inInfo').textContent = Math.round(f.size/1024) + ' KB';
+  try {
+    const z = await JSZip.loadAsync(f);
+    const mcOf = s => (String(s||'').match(/\d+\.\d+(\.\d+)?/) || [''])[0];
+    if (z.file('fabric.mod.json')) {
+      const j = JSON.parse(await z.file('fabric.mod.json').async('string'));
+      let mc = (j.depends||{}).minecraft || ''; if (Array.isArray(mc)) mc = mc.join(' ');
+      info = {loader:'fabric', name:j.name||j.id, mc:mcOf(mc), license:[].concat(j.license||'').join(' ')};
+    } else if (z.file('META-INF/neoforge.mods.toml')) {
+      const t = await z.file('META-INF/neoforge.mods.toml').async('string');
+      info = {loader:'neoforge', license:(t.match(/^\s*license\s*=\s*["']([^"']*)/m)||[])[1]||'', name:(t.match(/displayName\s*=\s*"([^"]*)"/)||[])[1] || f.name,
+              mc:mcOf((t.match(/modId\s*=\s*"minecraft"[\s\S]*?versionRange\s*=\s*"([^"]*)"/)||[])[1])};
+    } else if (z.file('META-INF/mods.toml')) {
+      const t = await z.file('META-INF/mods.toml').async('string');
+      info = {loader:'forge', license:(t.match(/^\s*license\s*=\s*["']([^"']*)/m)||[])[1]||'', name:(t.match(/displayName\s*=\s*"([^"]*)"/)||[])[1] || f.name,
+              mc:mcOf((t.match(/modId\s*=\s*"minecraft"[\s\S]*?versionRange\s*=\s*"([^"]*)"/)||[])[1])};
+    }
+    else if (z.file('quilt.mod.json')) { setMsg('This is a Quilt mod. Only Fabric, NeoForge and Forge mods can be ported.', true); }
+    else setMsg("This doesn't look like a Fabric, NeoForge or Forge mod.", true);
+  } catch(e) { setMsg('Could not read the jar: ' + e.message, true); }
+  if (info) {
+    $('inName').textContent = info.name; $('drop').dataset.loader = info.loader;
+    $('inInfo').textContent = loaderName(info.loader) + (info.mc ? ' · Minecraft ' + info.mc : '');
+    try { info.hash = await sha256(f); } catch(e) { info.hash = ''; }
+    pickTarget(DEFAULT_TARGET[info.loader]);
+    const v = (info.mc||'').split('.').map(Number);
+    if (info.mc && !(v[0] >= 26 || (v[0] === 1 && (v[1] >= 21 || (v[1] === 20 && (v[2]||0) >= 5)))))
+      setMsg('This mod is for Minecraft ' + info.mc + '. Only 1.20.5 and newer can be ported, so this one would fail.', true);
+    else setMsg('Ready. It will be ported to ' + loaderName(target) + '.' + (/all\s*rights\s*reserved|^\s*arr\s*$|^\s*$/i.test(info.license || '')
+      ? ' This mod is "All Rights Reserved" (or has no license), so keep the port for yourself and don\'t share it.' : ''));
+    checkBefore();
+  } else refreshGo();
+}
+const drop = $('drop');
+drop.addEventListener('click', () => { if (!busy) $('file').click(); });
+drop.addEventListener('keydown', e => { if ((e.key === 'Enter' || e.key === ' ') && !busy) { e.preventDefault(); $('file').click(); } });
+$('file').addEventListener('change', e => { takeFile(e.target.files[0]); e.target.value = ''; });
+['dragenter','dragover'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); if (!busy) drop.classList.add('drag'); }));
+['dragleave','drop'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove('drag'); }));
+drop.addEventListener('drop', e => takeFile(e.dataTransfer.files[0]));
+
+/* ---------- stages ---------- */
+function drawStages(cur, detail, failed){
+  const ci = STAGES.findIndex(s => s.k === cur);
+  $('stages').innerHTML = STAGES.map((s, i) => {
+    const st = failed && i === ci ? 'bad' : (i < ci || (cur === 'done' && !failed)) ? 'ok' : i === ci ? 'now' : 'todo';
+    const ic = st === 'ok' ? '✓' : st === 'bad' ? '✗' : st === 'now' ? '▶' : '·';
+    const sub = i === ci && detail ? '<span class="sub">' + esc(detail) + '</span>' : '';
+    return '<li class="' + st + '"><span class="ic">' + ic + '</span><span>' + esc(failed && i === ci ? 'Stopped' : s.t) + sub + '</span></li>';
+  }).join('');
+}
+function tick(){
+  if (!job) return;
+  const el = (job.finished || Date.now()) - job.started;
+  $('elapsed').textContent = clockFmt(el) + (job.finished ? ' in total' : ' elapsed');
+  $('eta').textContent = job.finished ? '' : el < avgMs ? 'about ' + mins(avgMs - el) + ' left' : 'taking longer than usual, still working';
+}
+function parseProgress(p){
+  const m = /^(\w+)\s+(\d+)\/(\d+):\s*(.*)$/.exec((p && p.text) || '');
+  return m ? {stage:m[1], n:+m[2], m:+m[3], text:m[4]} : null;
+}
+
+/* ---------- porting ---------- */
+$('go').addEventListener('click', async () => {
+  if (info && info.loader === target) { setMsg('This mod is already a ' + loaderName(target) + ' mod. Pick another loader.', true); return; }
+  if (prior && prior.status === 'success') {
+    $('before').hidden = true; $('work').hidden = true; setMsg('');
+    lock(true); await showResult(prior.run, true, true, 'hash=' + info.hash + '&target=' + target); return;
+  }
+  startPort();
+});
+
+async function startPort(){
+  lock(true); burning(true); $('result').hidden = true; resetOut(); $('work').hidden = false;
+  $('outName').textContent = 'Smelting…'; $('outInfo').textContent = 'you can close this page';
+  job = {started: Date.now(), name: info ? info.name : file.name, target, finished: 0};
+  clearInterval(timer); timer = setInterval(tick, 1000); tick();
+  drawStages('upload', Math.round(file.size/1024) + ' KB'); setProg(0.03); setMsg('');
+  try {
+    const b64 = await new Promise((res, rej) => { const fr = new FileReader(); fr.onload = () => res(String(fr.result).split(',')[1]); fr.onerror = () => rej(new Error('Could not read the file.')); fr.readAsDataURL(file); });
+    const r = await api('/port', {method:'POST', body:b64, headers:{'Content-Type':'text/plain', 'X-Terms':TERMS_VERSION, 'X-Target':target, 'X-Filename':encodeURIComponent(file.name)}});
+    job.sha = (await r.json()).sha; store.set('mp_job', job);
+    const mine = (store.get('mp_mine') || []).filter(x => x.sha !== job.sha);
+    mine.unshift({sha: job.sha, at: Date.now()}); store.set('mp_mine', mine.slice(0, 20));
+    await follow();
+  } catch(e) { failUI(e.message); }
+}
+
+async function follow(){
+  let misses = 0;
+  while (true) {
+    let s;
+    try { s = await (await api('/status?sha=' + job.sha)).json(); misses = 0; }
+    catch(e) { if (++misses > 40) throw e; await sleep(10000); continue; }
+    const run = s.run, p = parseProgress(s.progress);
+    let stage = 'queue', detail = run ? '' : 'GitHub is starting the build', frac = 0.08;
+    if (run && run.status === 'in_progress' && !p) { stage = 'prep'; detail = 'Starting up'; frac = 0.12; }
+    if (p) {
+      stage = STAGE_OF[p.stage] || 'prep'; detail = p.text;
+      const base = {prep:0.12, decomp:0.3, ai:0.36, build:0.62, done:1}[stage] ?? 0.12;
+      const span = {ai:0.26, build:0.36}[stage] || 0.04;
+      frac = base + (p.m ? span * p.n / p.m : 0);
+      if (stage === 'ai' && p.m) detail = 'File ' + p.n + ' of ' + p.m + ': ' + p.text.replace(/^Rewriting /, '');
+    }
+    if (run && run.status === 'completed') {
+      job.finished = Date.now(); store.set('mp_job', null); tick();
+      const ok = run.conclusion === 'success';
+      drawStages(ok ? 'done' : stage === 'done' ? 'build' : stage, ok ? '' : (p && p.stage === 'failed' ? p.text : 'The port stopped here'), !ok);
+      setProg(ok ? 1 : frac);
+      await showResult(run, ok, false, 'sha=' + job.sha);
+      return;
+    }
+    drawStages(stage, detail); setProg(frac);
+    await sleep(8000);
+  }
+}
+
+function failUI(message){
+  setMsg(message, true); $('outName').textContent = 'Failed'; $('outInfo').textContent = 'see the message below';
+  if (job) job.finished = Date.now(); store.set('mp_job', null); clearInterval(timer); tick(); burning(false); lock(false);
+}
+
+
+/* ---------- name filter: blur names with swear words or slurs ---------- */
+// Word lists are ROT13-scrambled so they don't sit readable in the page source.
+const BAD_SUB = "shpx fuvg ovgpu avttre avttn snttbg ergneq juber fyhg chffl cravf intvan cbea uvgyre jrgonpx genaal gjng jnax onfgneq nffubyr wvmm uragnv xhein xbxbg wrong wrorz ubiab ohmrenag".replace(/[a-z]/g, c => String.fromCharCode((c.charCodeAt(0) - 84) % 26 + 97)).split(' ');
+const BAD_TOK = new Set("nff qvpx pbpx phz frk encr anmv xvxr puvax fcvp qlxr pbba snt arte pvtna cvpn ceqry qrovy afsj xxx phag phagf snpx spx shx shd sxvat sxa fgsh jgs".replace(/[a-z]/g, c => String.fromCharCode((c.charCodeAt(0) - 84) % 26 + 97)).split(' '));
+const LEET = {'0':'o','1':'i','!':'i','|':'i','3':'e','4':'a','@':'a','5':'s','$':'s','7':'t','8':'b','9':'g'};
+function isBadName(name){
+  const raw = String(name || '');
+  const deleet = s => s.toLowerCase().replace(/[0-9!|@$]/g, c => LEET[c] || c);
+  const squashed = deleet(raw).normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z]/g, '');
+  if (BAD_SUB.some(w => squashed.includes(w))) return true;
+  const tokens = raw.replace(/([a-z])([A-Z])/g, '$1 $2').split(/[^A-Za-z0-9!|@$]+/).map(t => deleet(t).normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z]/g, ''));
+  return tokens.some(t => BAD_TOK.has(t) || BAD_TOK.has(t.replace(/s$/, '')));
+}
+const safeName = name => isBadName(name)
+  ? '<span class="blurred" title="Hidden because the name may contain offensive words" aria-label="Name hidden">' + esc(name) + '</span>'
+  : esc(name);
+
+/* ---------- results ---------- */
+async function fetchZip(proof){ return JSZip.loadAsync(await (await api('/artifact?' + proof)).blob()); }
+function saveBlob(blob, name){ const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 4000); }
+
+function parseReport(text){
+  const needs = [], notes = []; let failed = '';
+  for (const l of text.split('\n')) {
+    const n = /Needs ([\w.-]+): found .*?(https:\/\/modrinth\.com\/mod\/[\w.-]+)/.exec(l);
+    const miss = /Needs ([\w.-]+), but no/.exec(l);
+    if (n) needs.push({name:n[1], url:n[2], ok:true});
+    else if (miss) needs.push({name:miss[1], url:'https://modrinth.com/mod/' + miss[1], ok:false});
+    else if (/^\*\*Failed:\*\*/.test(l.trim())) failed = l.replace(/\*\*/g, '').replace(/^\s*Failed:\s*/, '').trim();
+    else if (/^- /.test(l) && !/^- (Mod:|AI model|Versions used|AI ported|Build succeeded)/.test(l)) notes.push(l.slice(2).replace(/\*\*/g, ''));
+  }
+  return {needs, notes, failed};
+}
+
+async function showResult(run, ok, before, proof){
+  clearInterval(timer); burning(false); lock(false);
+  const R = $('result'); R.hidden = false; R.innerHTML = '<p>Getting the result…</p>';
+  const tgt = (/to (fabric|neoforge|forge)$/i.exec(run.title) || [0, 'neoforge'])[1].toLowerCase();
+  try {
+    const z = await fetchZip(proof);
+    const names = Object.keys(z.files);
+    const jarName = names.find(n => /-PORTED\.jar$/.test(n));
+    const repName = names.find(n => /report\.md$/.test(n));
+    const report = repName ? await z.file(repName).async('string') : '';
+    const rep = parseReport(report);
+    let html = '<div class="head"><div><div class="big">' + (jarName ? 'Your mod is ready' : "This port didn't work") + '</div>' +
+      '<div class="meta">' + safeName(run.title) + '</div></div><div id="dlbox"></div></div>';
+    if (before) html += '<p class="meta">This mod was ported before, on ' + esc(new Date(run.created_at).toLocaleDateString(undefined, {day:'numeric', month:'long', year:'numeric'})) + '. You got the same result instantly. <button class="linkbtn" type="button" id="redo">Port it again anyway</button></p>';
+    if (rep.failed) html += '<p class="msg err">' + esc(rep.failed) + '</p>';
+    if (rep.needs.length) html += '<div class="need"><b>Also install ' + (rep.needs.length > 1 ? 'these mods' : 'this mod') + '</b>, or the game will crash:<ul>' +
+      rep.needs.map(d => '<li><a href="' + esc(d.url) + '" target="_blank" rel="noopener">' + esc(d.name) + '</a>' + (d.ok ? ' (' + loaderName(tgt) + ' version)' : ' (no ' + loaderName(tgt) + ' version was found, so this part may not work)') + '</li>').join('') + '</ul></div>';
+    html += jarName ? '<p>Test it in a new world first and keep a backup of your saves. A port that builds can still behave wrongly in-game.</p>'
+                    : '<p>The download has the half-ported source code and build logs, so an AI or a modder can finish the job.</p>';
+    if (rep.notes.length) html += '<details><summary>Things to know (' + rep.notes.length + ')</summary><ul class="notes">' + rep.notes.map(n => '<li>' + esc(n) + '</li>').join('') + '</ul></details>';
+    if (jarName) html += tipHtml();
+    html += '<details><summary>Full report</summary><pre>' + esc(report || 'No report.') + '</pre></details>';
+    html += '<p><button class="mc small" id="again">Port another mod</button></p>';
+    R.innerHTML = html;
+    if ($('tipBtn')) $('tipBtn').onclick = openDonate;
+    if ($('redo')) $('redo').onclick = () => { prior = null; setGoLabel(); R.hidden = true; window.scrollTo({top:0, behavior:'smooth'}); startPort(); };
+    const box = $('dlbox');
+    if (jarName) {
+      const blob = await z.file(jarName).async('blob'), nm = jarName.split('/').pop();
+      const b = document.createElement('button'); b.className = 'mc green'; b.textContent = 'Download jar'; b.onclick = () => saveBlob(blob, nm); box.appendChild(b);
+      const b2 = document.createElement('button'); b2.className = 'mc green small dl'; b2.textContent = 'Download'; b2.onclick = b.onclick; $('out').appendChild(b2);
+      $('outName').textContent = nm; $('outInfo').textContent = 'ready'; $('out').classList.add('ready');
+    } else {
+      const zb = await z.generateAsync({type:'blob'});
+      const b = document.createElement('button'); b.className = 'mc'; b.textContent = 'Download source & logs'; b.onclick = () => saveBlob(zb, 'port-' + run.id + '-source.zip'); box.appendChild(b);
+      $('outName').textContent = 'No jar'; $('outInfo').textContent = 'see the result below';
+    }
+    $('again').onclick = () => { file = null; info = null; prior = null; setGoLabel(); delete $('drop').dataset.loader; pickTarget(null); $('inName').textContent = 'Drop mod .jar'; $('inInfo').textContent = 'or click to choose a file'; resetOut(); $('work').hidden = true; R.hidden = true; setProg(0); setMsg(''); window.scrollTo({top:0, behavior:'smooth'}); };
+  } catch(e) {
+    R.innerHTML = '<p class="msg err">Could not get the result: ' + esc(e.message) + ' Try again in a minute.</p>';
+  }
+  loadHistory();
+}
+
+/* ---------- history ---------- */
+const ago = t => { const m = Math.round((Date.now() - new Date(t)) / 60000); return m < 1 ? 'just now' : m < 60 ? m + ' min ago' : m < 1440 ? Math.round(m/60) + ' h ago' : Math.round(m/1440) + ' d ago'; };
+async function loadHistory(){
+  if (!API) { $('hist').innerHTML = '<li class="empty">Not available until the backend is set up.</li>'; return; }
+  const mine = store.get('mp_mine') || [];
+  if (!mine.length) { $('hist').innerHTML = '<li class="empty">Ports you start in this browser show up here. Nobody else can see them.</li>'; return; }
+  try {
+    const {runs} = await (await api('/mine?shas=' + mine.map(x => x.sha).join(','))).json();
+    runs.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+    $('hist').innerHTML = runs.length ? runs.map(r => {
+      const st = r.status !== 'completed' ? ['r','Porting…'] : r.conclusion === 'success' ? ['s','Done'] : ['f','Failed'];
+      const m = /^(.*?)\s+to\s+(neoforge|fabric|forge)$/i.exec(r.title) || [null, r.title, ''];
+      const btn = r.status === 'completed' ? '<button class="mc small" data-proof="sha=' + esc(r.key) + '">' + (r.conclusion === 'success' ? 'Download' : 'Logs') + '</button>' : '';
+      return '<li><div><div class="nm">' + safeName(m[1]) + '</div><div class="meta">' + (m[2] ? '<span class="chip ' + chipClass(m[2].toLowerCase()) + '">→ ' + loaderName(m[2].toLowerCase()) + '</span>' : '') + ago(r.created_at) +
+        ' · <span class="st ' + st[0] + '">' + st[1] + '</span></div></div><div class="act">' + btn + '</div></li>';
+    }).join('') : '<li class="empty">Your earlier ports have expired.</li>';
+  } catch(e) { $('hist').innerHTML = '<li class="empty">' + esc(e.message) + '</li>'; }
+}
+async function loadStats(){
+  try { const s = await (await api('/stats')).json(); if (s.avg_ms) avgMs = s.avg_ms; } catch(e) {}
+}
+$('hist').addEventListener('click', async e => {
+  const b = e.target.closest('button[data-proof]'); if (!b) return;
+  const old = b.textContent; b.disabled = true; b.textContent = 'Getting…';
+  try {
+    const z = await fetchZip(b.dataset.proof);
+    const jar = Object.keys(z.files).find(n => /-PORTED\.jar$/.test(n));
+    if (jar) saveBlob(await z.file(jar).async('blob'), jar.split('/').pop());
+    else saveBlob(await z.generateAsync({type:'blob'}), 'port-source-and-logs.zip');
+    b.textContent = old;
+  } catch(err) { b.textContent = 'Failed'; setTimeout(() => { b.textContent = old; }, 3000); setMsg(err.message, true); }
+  b.disabled = false;
+});
+
+/* ---------- terms gate (asked on every visit) ---------- */
+const TERMS_VERSION = '3';
+function showGate(){
+  const g = $('gate');
+  g.addEventListener('cancel', e => e.preventDefault()); // Esc can't skip it
+  $('gateOk').addEventListener('change', () => { $('gateGo').disabled = !$('gateOk').checked; });
+  $('gateGo').addEventListener('click', () => { if (!$('gateOk').checked) return; agreed = true; g.close(); refreshGo(); });
+  try { g.showModal(); } catch(e) { g.setAttribute('open', ''); }
+}
+showGate();
+
+/* ---------- donations ---------- */
+let DONATE = [];
+function openDonate(){ const d = $('don'); try { d.showModal(); } catch(e) { d.setAttribute('open', ''); } }
+$('donClose').addEventListener('click', () => $('don').close());
+document.querySelectorAll('.donbtn').forEach(b => b.addEventListener('click', openDonate));
+$('don').addEventListener('click', e => { if (e.target === $('don')) $('don').close(); });
+async function loadDonate(){
+  try {
+    const c = await (await fetch('donate.json', {cache:'no-store'})).json();
+    DONATE = (c.links || []).filter(l => l && /^https:\/\//.test(l.url || ''));
+  } catch(e) { DONATE = []; }
+  $('donLinks').innerHTML = DONATE.length
+    ? DONATE.map(l => '<a class="mc green" target="_blank" rel="noopener" href="' + esc(l.url) + '">' + esc(l.name || 'Donate') + '</a>').join('')
+    : '<p style="margin:0;font-weight:600">Donation links are coming soon. Thanks for wanting to help!</p>';
+}
+function tipHtml(){ return DONATE.length ? '<div class="tip"><span><span class="heart">♥</span> Did this save you time? Mod Porter runs on tips.</span><button class="mc small" type="button" id="tipBtn">Support it</button></div>' : ''; }
+
+/* ---------- start ---------- */
+(async () => {
+  loadDonate();
+  try { const c = await (await fetch('config.json', {cache:'no-store'})).json(); API = (c.worker || '').replace(/\/$/, ''); } catch(e) {}
+  if (!API) { $('banner').hidden = false; $('banner').textContent = "The website backend isn't set up yet, so porting is switched off for now."; }
+  refreshGo();
+  loadStats();
+  await loadHistory();
+  const saved = store.get('mp_job');
+  if (saved && saved.sha && API) {
+    job = saved; target = saved.target; lock(true); burning(true); $('work').hidden = false;
+    $('inName').textContent = saved.name; $('inInfo').textContent = 'porting to ' + loaderName(saved.target);
+    $('outName').textContent = 'Smelting…'; $('outInfo').textContent = 'picked up where you left off';
+    drawStages('queue', 'Checking on your port'); timer = setInterval(tick, 1000); tick();
+    try { await follow(); } catch(e) { failUI(e.message); }
+  }
+})();
+}
+</script>
+</body>
+</html>
