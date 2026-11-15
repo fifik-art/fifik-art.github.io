@@ -441,7 +441,8 @@ function drawScene(){
   sv.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
   sv.innerHTML = s;
 }
-new ResizeObserver(drawScene).observe(document.querySelector('.hero'));
+const onFrame = fn => { let q = false; return () => { if (q) return; q = true; requestAnimationFrame(() => { q = false; fn(); }); }; };
+new ResizeObserver(onFrame(drawScene)).observe(document.querySelector('.hero'));
 
 /* ---------- underground: stone -> deepslate, ores in the walls, lava at the bottom ---------- */
 function drawCave(){
@@ -482,7 +483,7 @@ function drawCave(){
   sv.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
   sv.innerHTML = '<defs><linearGradient id="lavaGlow" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff7b1a" stop-opacity="0"/><stop offset="1" stop-color="#ff7b1a" stop-opacity=".45"/></linearGradient></defs>' + s;
 }
-new ResizeObserver(drawCave).observe(document.querySelector('.under'));
+new ResizeObserver(onFrame(drawCave)).observe(document.querySelector('.under'));
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const store = {get(k){try{return JSON.parse(localStorage.getItem(k))}catch(e){return null}},set(k,v){try{v==null?localStorage.removeItem(k):localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
@@ -714,7 +715,7 @@ async function follow(){
       return;
     }
     drawStages(stage, detail); setProg(frac);
-    await sleep(8000);
+    await sleep(document.hidden ? 30000 : 10000);  // check less often in a background tab
   }
 }
 
