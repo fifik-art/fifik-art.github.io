@@ -206,6 +206,13 @@ footer .wrap{background:rgba(0,0,0,.55);margin:0 auto 0;max-width:none;padding:2
 footer .wrap > *{max-width:980px}
 @media(max-width:760px){.rrow{grid-template-columns:1fr}.rop{transform:rotate(90deg);margin:0 auto}}
 @media(max-width:600px){.hist li{grid-template-columns:auto minmax(0,1fr)}.hist .act{grid-column:2}}
+.stoprow{display:flex;justify-content:flex-end;margin-top:12px}
+.stoprow[hidden]{display:none}
+.mc.danger{background:#a8321f;border-color:#e48a7a #5e1a10 #5e1a10 #e48a7a}
+.mc.danger:hover:not(:disabled){background:#bd3c27;border-color:#f0a294 #6e2014 #6e2014 #f0a294}
+.mc.armed{background:#d9480f;animation:none}
+.del{background:none;border:0;color:#7a2a1d;text-decoration:underline;font:600 13px system-ui,sans-serif;cursor:pointer;min-height:40px;padding:0 4px}
+.del.armed{color:#fff;background:#a8321f;text-decoration:none;padding:0 10px}
 </style>
 
 </head>
@@ -252,6 +259,7 @@ footer .wrap > *{max-width:980px}
       <div id="work" hidden>
         <ol class="stages" id="stages"></ol>
         <div class="clock"><span id="elapsed"></span><span id="eta"></span></div>
+        <div class="stoprow"><button class="mc small danger" type="button" id="stopBtn">Stop and delete</button></div>
       </div>
     </section>
   </div>
@@ -640,10 +648,49 @@ async function startPort(){
   } catch(e) { failUI(e.message); }
 }
 
+/* ---------- stop and delete ---------- */
+let stopping = false;
+// Two clicks: the first arms the button for a few seconds, the second does it.
+function armed(btn, label){
+  if (btn.dataset.armed === '1') return true;
+  btn.dataset.armed = '1'; const old = btn.textContent; btn.textContent = label; btn.classList.add('armed');
+  setTimeout(() => { if (btn.isConnected && btn.dataset.armed === '1') { btn.dataset.armed = ''; btn.textContent = old; btn.classList.remove('armed'); } }, 4000);
+  return false;
+}
+async function stopAndDelete(sha){
+  for (let i = 0; i < 60; i++) {
+    const r = await (await api('/delete', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({sha})})).json();
+    if (r.state === 'deleted') return true;
+    await sleep(4000);
+  }
+  throw new Error('The port is taking long to stop. Try deleting it again from "Your recent ports" in a minute.');
+}
+function forget(sha){ store.set('mp_mine', (store.get('mp_mine') || []).filter(x => x.sha !== sha)); }
+$('stopBtn').addEventListener('click', async () => {
+  const b = $('stopBtn');
+  if (!job || !job.sha || stopping) return;
+  if (!armed(b, 'Click again to stop and delete')) return;
+  stopping = true; b.disabled = true; b.textContent = 'Stopping…';
+  drawStages('done', 'Stopping the build and deleting your files…', true);
+  try {
+    await stopAndDelete(job.sha);
+    forget(job.sha); store.set('mp_job', null);
+    clearInterval(timer); burning(false); job.finished = Date.now(); tick();
+    drawStages('done', 'Stopped by you. Your upload, logs and results were deleted.', true);
+    resetOut(); $('outName').textContent = 'Stopped'; $('outInfo').textContent = 'files deleted';
+    setMsg('Port stopped. Your upload and everything made from it has been deleted.');
+  } catch(e) { setMsg(e.message, true); }
+  stopping = false; b.disabled = false; b.textContent = 'Stop and delete'; b.dataset.armed = ''; b.classList.remove('armed');
+  $('stopBtn').parentElement.hidden = true;
+  lock(false); loadHistory();
+});
+
 async function follow(){
+  stopping = false; $('stopBtn').parentElement.hidden = false;
   let misses = 0;
   while (true) {
     let s;
+    if (stopping) return;
     try { s = await (await api('/status?sha=' + job.sha)).json(); misses = 0; }
     catch(e) { if (++misses > 40) throw e; await sleep(10000); continue; }
     const run = s.run, p = parseProgress(s.progress);
@@ -656,7 +703,9 @@ async function follow(){
       frac = base + (p.m ? span * p.n / p.m : 0);
       if (stage === 'ai' && p.m) detail = 'File ' + p.n + ' of ' + p.m + ': ' + p.text.replace(/^Rewriting /, '');
     }
+    if (stopping) return;
     if (run && run.status === 'completed') {
+      $('stopBtn').parentElement.hidden = true;
       job.finished = Date.now(); store.set('mp_job', null); tick();
       const ok = run.conclusion === 'success';
       drawStages(ok ? 'done' : stage === 'done' ? 'build' : stage, ok ? '' : (p && p.stage === 'failed' ? p.text : 'The port stopped here'), !ok);
@@ -670,6 +719,7 @@ async function follow(){
 }
 
 function failUI(message){
+  if ($('stopBtn')) $('stopBtn').parentElement.hidden = true;
   setMsg(message, true); $('outName').textContent = 'Failed'; $('outInfo').textContent = 'see the message below';
   if (job) job.finished = Date.now(); store.set('mp_job', null); clearInterval(timer); tick(); burning(false); lock(false);
 }
@@ -766,7 +816,8 @@ async function loadHistory(){
     $('hist').innerHTML = runs.length ? runs.map(r => {
       const st = r.status !== 'completed' ? ['r','Porting…'] : r.conclusion === 'success' ? ['s','Done'] : ['f','Failed'];
       const m = /^(.*?)\s+to\s+(neoforge|fabric|forge)$/i.exec(r.title) || [null, r.title, ''];
-      const btn = r.status === 'completed' ? '<button class="mc small" data-proof="sha=' + esc(r.key) + '">' + (r.conclusion === 'success' ? 'Download' : 'Logs') + '</button>' : '';
+      const btn = (r.status === 'completed' ? '<button class="mc small" data-proof="sha=' + esc(r.key) + '">' + (r.conclusion === 'success' ? 'Download' : 'Logs') + '</button>' : '') +
+        '<button class="del" type="button" data-del="' + esc(r.key) + '">' + (r.status === 'completed' ? 'Delete' : 'Stop and delete') + '</button>';
       return '<li><span class="hico ld-' + esc((m[2] || '').toLowerCase()) + '">' + pxSvg('jar') + '</span><div><div class="nm">' + safeName(m[1]) + '</div><div class="meta">' + (m[2] ? '<span class="chip ' + chipClass(m[2].toLowerCase()) + '">→ ' + loaderName(m[2].toLowerCase()) + '</span>' : '') + ago(r.created_at) +
         ' · <span class="st ' + st[0] + '">' + st[1] + '</span></div></div><div class="act">' + btn + '</div></li>';
     }).join('') : '<li class="empty">Your earlier ports have expired.</li>';
@@ -776,6 +827,19 @@ async function loadStats(){
   try { const s = await (await api('/stats')).json(); if (s.avg_ms) avgMs = s.avg_ms; } catch(e) {}
 }
 $('hist').addEventListener('click', async e => {
+  const d = e.target.closest('button[data-del]');
+  if (d) {
+    if (!armed(d, 'Sure? Click again')) return;
+    d.disabled = true; d.textContent = 'Deleting…';
+    try {
+      const sha = d.dataset.del;
+      if (job && job.sha === sha && !job.finished) { stopping = true; }
+      await stopAndDelete(sha); forget(sha);
+      if (job && job.sha === sha) { store.set('mp_job', null); clearInterval(timer); burning(false); lock(false); $('work').hidden = true; resetOut(); setMsg('Port deleted.'); }
+      stopping = false; loadHistory();
+    } catch(err) { d.disabled = false; d.textContent = 'Delete'; setMsg(err.message, true); }
+    return;
+  }
   const b = e.target.closest('button[data-proof]'); if (!b) return;
   const old = b.textContent; b.disabled = true; b.textContent = 'Getting…';
   try {
